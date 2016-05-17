@@ -89,10 +89,14 @@ def create_model(vertex, edge, params={}, timesteps=[]):
     del edges_tmp
     
     # derive list of neighbours for each vertex
-    neighbours = {}
+    m.neighbours = {}
     for (i, j) in edges.index:
-        neighbours.setdefault(i, [])
-        neighbours[i].append(j)
+        m.neighbours.setdefault(i, [])
+        m.neighbours[i].append(j)
+        
+    #
+    m.vertices = vertex.copy()
+    m.edges = edges.copy()
     
     cost_types = [
         'network', # pipe construction, maintenance
@@ -211,107 +215,48 @@ def create_model(vertex, edge, params={}, timesteps=[]):
     m.Q = pyomo.Var(m.vertex, m.timesteps, within=pyomo.NonNegativeReals)
     m.y = pyomo.Var(m.edge, m.timesteps, within=pyomo.Binary)
     
-    # Constraints
-    def energy_conservation(m, i, t):
-        return sum(m.Pin[i,k,t] - m.Pot[k,i,t] for k in neighbours[i]) <= m.Q[i,t]
-        
-    def demand_satisfaction(m, i, j, t):
-        return m.Pot[i,j,t] == \
-               m.Pin[i,j,t] * m.eta[i,j] - \
-               m.y[i,j,t] * m.delta[i,j] * m.scaling_factor[t]
-    
-    def pipe_capacity(m, i, j, t):
-        return m.Pin[i,j,t] <= m.Pmax[i,j]
-        
-    def pipe_usage(m, i,j ,t):
-        return m.Pin[i,j,t] <= m.y[i,j,t] * edges.ix[i,j]['cap_max']
-        
-    def build_capacity(m, i, j):
-        return m.Pmax[i,j] <= m.x[i,j] * edges.ix[i,j]['cap_max']
-
-    def unidirectionality(m, i, j, t):
-        return m.y[i,j,t] + m.y[j,i,t] <= 1
-               
-    def symmetry_x(m, i, j):
-        return m.x[i,j] == m.x[j,i]
-        
-    def symmetry_Pmax(m, i, j):
-        return m.Pmax[i,j] == m.Pmax[j,i]
-        
-    def built_then_use(m, i, j, t):
-        return m.y[i,j,t] + m.y[j,i,t] >= (m.x[i,j] + m.x[j,i]) / 2
-        
-    def source_vertices(m, i, t):
-        if i in m.source_vertex:
-            return m.Q[i,t] <= vertex.ix[i]['capacity'] * m.availability[i,t]
-        else:
-            return m.Q[i,t] <= 0
-    
     m.energy_conservation = pyomo.Constraint(
         m.vertex, m.timesteps,
         doc='Power flow is conserved in vertex',
-        rule=energy_conservation)
+        rule=energy_conservation_rule)
     m.demand_satisfaction = pyomo.Constraint(
         m.edge, m.timesteps,
         doc='Peak demand (delta) must be satisfied in edge, if pipe is built',
-        rule=demand_satisfaction)
+        rule=demand_satisfaction_rule)
     m.pipe_capacity = pyomo.Constraint(
         m.edge, m.timesteps,
         doc='Power flow is smaller than pipe capacity Pmax',
-        rule=pipe_capacity)
+        rule=pipe_capacity_rule)
     m.pipe_usage = pyomo.Constraint(
         m.edge, m.timesteps,
         doc='Power flow through pipe=0 if y[i,j,t]=0',
-        rule=pipe_usage)
+        rule=pipe_usage_rule)
     m.build_capacity = pyomo.Constraint(
         m.edge, 
         doc='Pipe capacity Pmax must be smaller than edge attribute cap_max',
-        rule=build_capacity)
+        rule=build_capacity_rule)
     m.unidirectionality = pyomo.Constraint(
         m.edge, m.timesteps, 
         doc='Power flow only in one direction per timestep',
-        rule=unidirectionality)
+        rule=unidirectionality_rule)
     m.symmetry_x = pyomo.Constraint(
         m.edge, 
         doc='Pipe may be used in both directions, if built',
-        rule=symmetry_x)
+        rule=symmetry_x_rule)
     m.symmetry_Pmax = pyomo.Constraint(
         m.edge, 
         doc='Pipe has same capacity in both directions, if built',
-        rule=symmetry_Pmax)
+        rule=symmetry_Pmax_rule)
     m.built_then_use = pyomo.Constraint(
         m.edge, m.timesteps, 
         doc='Demand must be satisfied from at least one direction, if built',
-        rule=built_then_use)
+        rule=built_then_use_rule)
     m.source_vertices = pyomo.Constraint(
         m.vertex, m.timesteps,
         doc='Non-zero source term Q is only allowed in source vertices',
-        rule=source_vertices)
+        rule=source_vertices_rule)
     
     # Objective
-    # minimize total costs (network + heat - revenue)
-    def cost_rule(m, cost_type):
-        if cost_type == 'network':
-            return m.costs['network'] == \
-                    sum(m.k_fix[i,j] * m.x[i,j] + 
-                        m.k_var[i,j] * m.Pmax[i,j] 
-                        for (i,j) in m.edge)
-        elif cost_type == 'heat':
-            return m.costs['heat'] == \
-                    sum(m.k_heat[i] * m.Q[i,t] * m.dt[t]
-                        for i in m.vertex 
-                        for t in m.timesteps)
-        elif cost_type == 'revenue':
-            return m.costs['revenue'] == \
-                    - sum(m.r_heat[i,j] * m.x[i,j] * m.scaling_factor[t] * m.dt[t]
-                        for (i,j) in m.edge
-                        for t in m.timesteps)
-        else:
-            raise NotImplementedError("Unknown cost type!")
-
-    def obj_rule(m):
-        return sum(m.costs[cost_type] for cost_type in m.cost_types)
-
     m.def_costs = pyomo.Constraint(
         m.cost_types,
         doc='Cost definitions by type',
@@ -322,7 +267,66 @@ def create_model(vertex, edge, params={}, timesteps=[]):
         rule=obj_rule)
 
     return m
+
+
+# Constraints
+def energy_conservation_rule(m, i, t):
+    return sum(m.Pin[i,k,t] - m.Pot[k,i,t] for k in m.neighbours[i]) <= m.Q[i,t]
     
+def demand_satisfaction_rule(m, i, j, t):
+    return m.Pot[i,j,t] == \
+           m.Pin[i,j,t] * m.eta[i,j] - \
+           m.y[i,j,t] * m.delta[i,j] * m.scaling_factor[t]
+
+def pipe_capacity_rule(m, i, j, t):
+    return m.Pin[i,j,t] <= m.Pmax[i,j]
+    
+def pipe_usage_rule(m, i,j ,t):
+    return m.Pin[i,j,t] <= m.y[i,j,t] * m.edges.ix[i,j]['cap_max']
+    
+def build_capacity_rule(m, i, j):
+    return m.Pmax[i,j] <= m.x[i,j] * m.edges.ix[i,j]['cap_max']
+
+def unidirectionality_rule(m, i, j, t):
+    return m.y[i,j,t] + m.y[j,i,t] <= 1
+           
+def symmetry_x_rule(m, i, j):
+    return m.x[i,j] == m.x[j,i]
+    
+def symmetry_Pmax_rule(m, i, j):
+    return m.Pmax[i,j] == m.Pmax[j,i]
+    
+def built_then_use_rule(m, i, j, t):
+    return m.y[i,j,t] + m.y[j,i,t] >= (m.x[i,j] + m.x[j,i]) / 2
+    
+def source_vertices_rule(m, i, t):
+    if i in m.source_vertex:
+        return m.Q[i,t] <= m.vertices.ix[i]['capacity'] * m.availability[i,t]
+    else:
+        return m.Q[i,t] <= 0
+
+# minimize total costs (network + heat - revenue)
+def cost_rule(m, cost_type):
+    if cost_type == 'network':
+        return m.costs['network'] == \
+                sum(m.k_fix[i,j] * m.x[i,j] + 
+                    m.k_var[i,j] * m.Pmax[i,j] 
+                    for (i,j) in m.edge)
+    elif cost_type == 'heat':
+        return m.costs['heat'] == \
+                sum(m.k_heat[i] * m.Q[i,t] * m.dt[t]
+                    for i in m.vertex 
+                    for t in m.timesteps)
+    elif cost_type == 'revenue':
+        return m.costs['revenue'] == \
+                - sum(m.r_heat[i,j] * m.x[i,j] * m.scaling_factor[t] * m.dt[t]
+                    for (i,j) in m.edge
+                    for t in m.timesteps)
+    else:
+        raise NotImplementedError("Unknown cost type!")
+
+def obj_rule(m):
+    return sum(m.costs[cost_type] for cost_type in m.cost_types)
     
 
 def anf(n, i):
