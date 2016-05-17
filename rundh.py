@@ -9,11 +9,6 @@ except ImportError:
 import dhmin
 import dhmintools
 import pandas as pd
-import pandashp as pdshp
-import pandaspyomo as pdpo
-import pyomotools
-from coopr.opt.base import SolverFactory
-from operator import itemgetter
 
 # config
 data_file = 'mnl.xlsx'
@@ -27,8 +22,8 @@ timesteps = [(1600,.8),(1040,.5)] # list of (duration [hours], scaling_factor) t
 # vertex = dfs['Vertex']
 # edge = dfs['Edge']
 # while scaling better when the number of spreadsheets increase
-dfs = pyomotools.read_xls(data_file)
-vertex, edge = dfs['Vertex'], dfs['Edge']
+data = dhmin.read_excel(data_file)
+vertex, edge = data['Vertex'], data['Edge']
 
 # get model
 # create instance
@@ -37,10 +32,12 @@ prob = dhmin.create_model(vertex, edge, params, timesteps)
 if PYOMO3:
     prob = prob.create()
 solver = SolverFactory('glpk')
-result = solver.solve(prob, timelimit=30)
+result = solver.solve(prob, timelimit=30, tee=True)
 if PYOMO3:
     prob.load(result)
+else:
+    prob.solutions.load_from(result)
 
 # use special-purpose function to plot power flows
-dhmintools.plot_flows_min(instance)
+dhmintools.plot_flows_min(prob)
 

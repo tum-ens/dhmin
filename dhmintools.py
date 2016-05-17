@@ -7,18 +7,19 @@ are to be used among scenarios.
 """
 import matplotlib.pyplot as plt
 import pandas as pd
-import pandaspyomo as pdpo
+import dhmin
 
 def plot_flows_min(model):
     """ Plot power flows for minimal example.
     
-    
+    Creates a minimal visualisation of the `mnl.xlsx` model provided with
+    DHMIN.
     """
     
-    power_flows = pdpo.get_entities(model, ['Pin', 'Pot'])
+    power_flows = dhmin.get_entities(model, ['Pin', 'Pot'])
     power_flows_grouped = power_flows.groupby(level='timesteps')
     
-    power_input = pdpo.get_entity(model, 'Q')
+    power_input = dhmin.get_entity(model, 'Q')
     power_input_grouped = power_input.groupby(level='timesteps')
     
     plt.figure()

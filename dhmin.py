@@ -13,6 +13,26 @@ except ImportError:
 import numpy as np
 import pandas as pd
 
+
+def read_excel(filename):
+    """Read input Excel file and return dict of DataFrames for each sheet.
+    
+    Read an Excel spreadsheet with geographic input data.
+    
+    Args:
+        filename: filename to an Excel spreadsheet with 'Vertex' and 'Edge'
+        
+    Returns:
+        dict of 2 pandas DataFrames
+    """
+    with pd.ExcelFile(filename) as xls:
+        vertex = xls.parse('Vertex').set_index('Vertex')
+        edge = xls.parse('Edge').set_index(['Edge', 'Vertex1', 'Vertex2'])
+    data = {
+        'Vertex': vertex,
+        'Edge': edge}
+    return data
+
 def create_model(vertex, edge, params={}, timesteps=[]):
     """return a DHMIN model instance from nodes and edges DataFrame
     
