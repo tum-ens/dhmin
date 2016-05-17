@@ -34,7 +34,7 @@ result = solver.solve(instance, timelimit=30, tee=True)
 instance.solutions.load_from(result)
 
 # use special-purpose function to plot power flows (works unchanged!)
-# dhmintools.plot_flows_min(instance)
+ dhmintools.plot_flows_min(instance)
 
 # read time-independent variable values to DataFrame
 # (list all variables using dhmin.list_entities(instance, 'variables')
@@ -53,24 +53,4 @@ caps.index.names = edge.index.names.copy()
 edge_with_caps = edge.join(caps)
 # pdshp.write_shp(edge_with_caps, 'shp/mnl/edge_w_caps') # already prepared
 
-
-# DEBUGGING
-flows = dhmin.get_entities(instance, ['Pin', 'Pot'])
-Pin = flows.fillna(0).Pin.round()
-Pin = Pin[Pin>0].unstack().fillna(0) 
-Pin.index.names = edge.index.names.copy()
-print("Pin:\n")
-print(Pin)
-
-Pmax = caps.fillna(0).Pmax.round()
-Pmax = Pmax[Pmax>0].fillna(0)
-print("Pmax:\n")
-print(Pmax)
-
-# write findings to Excel file
-xls = pd.ExcelWriter('debugging.xlsx')
-pd.DataFrame(Pin).to_excel(xls, sheet_name='Pin')
-pd.DataFrame(Pmax).to_excel(xls, sheet_name='Pmax')
-flows.fillna(0).apply(np.round).to_excel(xls, sheet_name='Flows')
-xls.save()
 
