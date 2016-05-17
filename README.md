@@ -1,18 +1,25 @@
 # dhmin
 
-dhmin is a [mixed integer linear programming](https://en.wikipedia.org/wiki/Integer_programming) optimisation model for planning of ma.  
+dhmin is a [mixed integer linear programming](https://en.wikipedia.org/wiki/Integer_programming) optimization model for planning of district heating networks. 
 
 ## Features
 
-  * rivus is a mixed integer linear programming model for single-commodity energy infrastructure networks systems with a focus on high spatial resolution.
+  * dhmin is a mixed integer linear programming model for single-commodity energy infrastructure networks systems with a focus on high spatial resolution.
   * It finds the minimum cost/maximum revenue tradeoff for the size of a district heating network.
   * Time is represented by a (small) set of weighted time steps that represent peak or typical loads  .
   * Spatial data can be provided in form of shapefiles, while technical parameters can be edited in code.
-  * The model itself is written using  [Coopr](https://software.sandia.gov/trac/coopr)/[Pyomo](https://software.sandia.gov/trac/coopr/wiki/Pyomo). 
 
+## Dependencies
+
+  * [Pyomo](http://www.pyomo.org/) for formulating the optimizaton model
+  * Any solver supported by Pyomo (GLPK, CBC, CPLEX, Gurobi, ...)
+  * [Pandas](http://pandas.pydata.org/) for all data handling
+  * [Geopandas](http://geopandas.org/) for shapefile I/O
+
+  
 ## Copyright
 
-Copyright (C) 2015  Johannes Dorfner
+Copyright (C) 2013-2016  Johannes Dorfner
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
