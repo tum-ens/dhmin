@@ -1,4 +1,11 @@
-import coopr.environ
+try:
+    import pyomo.environ
+    from pyomo.opt.base import SolverFactory
+    PYOMO3 = False
+except ImportError:
+    import coopr.environ
+    from coopr.opt.base import SolverFactory
+    PYOMO3 = True
 import dhmin
 import dhmintools
 import pandas as pd
@@ -21,17 +28,18 @@ timesteps = [(1600,.8),(1040,.5)] # list of (duration [hours], scaling_factor) t
 # edge = dfs['Edge']
 # while scaling better when the number of spreadsheets increase
 dfs = pyomotools.read_xls(data_file)
-get_vertex_edge_from = itemgetter('Vertex', 'Edge')
-(vertex, edge) = get_vertex_edge_from(dfs)
+vertex, edge = dfs['Vertex'], dfs['Edge']
 
 # get model
 # create instance
 # solver interface (GLPK)
-model = dhmin.create_model(vertex, edge, params, timesteps)
-instance = model.create()
+prob = dhmin.create_model(vertex, edge, params, timesteps)
+if PYOMO3:
+    prob = prob.create()
 solver = SolverFactory('glpk')
-result = solver.solve(instance, timelimit=30)
-instance.load(result)
+result = solver.solve(prob, timelimit=30)
+if PYOMO3:
+    prob.load(result)
 
 # use special-purpose function to plot power flows
 dhmintools.plot_flows_min(instance)
