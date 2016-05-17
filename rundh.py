@@ -1,14 +1,8 @@
-try:
-    import pyomo.environ
-    from pyomo.opt.base import SolverFactory
-    PYOMO3 = False
-except ImportError:
-    import coopr.environ
-    from coopr.opt.base import SolverFactory
-    PYOMO3 = True
 import dhmin
 import dhmintools
 import pandas as pd
+import pyomo.environ
+from pyomo.opt.base import SolverFactory
 
 # config
 data_file = 'mnl.xlsx'
@@ -29,14 +23,10 @@ vertex, edge = data['Vertex'], data['Edge']
 # create instance
 # solver interface (GLPK)
 prob = dhmin.create_model(vertex, edge, params, timesteps)
-if PYOMO3:
-    prob = prob.create()
-solver = SolverFactory('glpk')
-result = solver.solve(prob, timelimit=30, tee=True)
-if PYOMO3:
-    prob.load(result)
-else:
-    prob.solutions.load_from(result)
+optim = SolverFactory('glpk')
+prob.write('rundh.lp', io_options={'symbolic_solver_labels':True})
+result = optim.solve(prob, timelimit=30, tee=True)
+prob.solutions.load_from(result)
 
 # use special-purpose function to plot power flows
 dhmintools.plot_flows_min(prob)

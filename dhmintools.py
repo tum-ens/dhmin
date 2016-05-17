@@ -28,7 +28,7 @@ def plot_flows_min(model):
         plt.title(name)
         plt.xlim(0, 10)
         plt.ylim(0, 10)
-        for key, value in group['Pin'].iterkv():
+        for key, value in group['Pin'].iteritems():
             x = [int(key[0]/10), int(key[1]/10)]
             y = [key[0]%10, key[1]%10]
             z = 2 if value > 1 else 1 # show grey lines behind red ones

@@ -3,10 +3,8 @@ import dhmintools
 import numpy as np
 import pandas as pd
 import pandashp as pdshp
-import pandaspyomo as pdpo
-import pyomotools
-from coopr.opt.base import SolverFactory
-from operator import itemgetter
+import pyomo.environ
+from pyomo.opt.base import SolverFactory
 
 # config
 vertex_file = 'shp/mnl/vertex'
@@ -30,22 +28,26 @@ edge.set_index(['Edge', 'Vertex1', 'Vertex2'], inplace=True)
 # create instance
 # solver interface (GLPK)
 model = dhmin.create_model(vertex, edge, params, timesteps)
-instance = model.create()
 solver = SolverFactory('glpk')
-result = solver.solve(instance, timelimit=30, options='mipgap=0.01')
-instance.load(result)
+instance.write('rundhshp.lp', io_options={'symbolic_solver_labels':True})
+result = solver.solve(instance, timelimit=30, tee=True)
+instance.solutions.load_from(result)
 
 # use special-purpose function to plot power flows (works unchanged!)
-dhmintools.plot_flows_min(instance)
+# dhmintools.plot_flows_min(instance)
 
 # read time-independent variable values to DataFrame
-# (list all variables using pdpo.list_entities(instance, 'variables')
-caps = pdpo.get_entities(instance, ['Pmax', 'x'])
-costs = pdpo.get_entity(instance, 'costs')
+# (list all variables using dhmin.list_entities(instance, 'variables')
+caps = dhmin.get_entities(instance, ['Pmax', 'x'])
+costs = dhmin.get_entity(instance, 'costs')
 
 # remove Edge from index, so that edge and caps are both indexed on
 # (vertex, vertex) tuples, i.e. their indices match for identical edges
 edge.reset_index('Edge', inplace=True)
+
+# change index names to 'Vertex1', 'Vertex2' from auto-inferred labels 
+# 'vertex','vertex_'
+caps.index.names = edge.index.names.copy()
 
 # join
 edge_with_caps = edge.join(caps)
@@ -53,16 +55,17 @@ edge_with_caps = edge.join(caps)
 
 
 # DEBUGGING
-flows = pdpo.get_entities(instance, ['Pin', 'Pot'])
+flows = dhmin.get_entities(instance, ['Pin', 'Pot'])
 Pin = flows.fillna(0).Pin.round()
 Pin = Pin[Pin>0].unstack().fillna(0) 
-print "Pin:\n"
-print Pin
+Pin.index.names = edge.index.names.copy()
+print("Pin:\n")
+print(Pin)
 
 Pmax = caps.fillna(0).Pmax.round()
 Pmax = Pmax[Pmax>0].fillna(0)
-print "Pmax:\n"
-print Pmax
+print("Pmax:\n")
+print(Pmax)
 
 # write findings to Excel file
 xls = pd.ExcelWriter('debugging.xlsx')
