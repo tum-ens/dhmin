@@ -2,6 +2,10 @@
 
 dhmin is a [mixed integer linear programming](https://en.wikipedia.org/wiki/Integer_programming) optimization model developed for planning of district heating or cooling networks. 
 
+## Screenshot
+
+<a href="doc/img/rundh-mnl-result.png"><img src="doc/img/rundh-mnl-result.png" alt="Result power flow configurations for provided minimal input dataset" style="width:600px"></a>
+
 ## Features
 
   * dhmin is a mixed integer linear programming model for single-commodity energy infrastructure networks systems with a focus on high spatial resolution.
