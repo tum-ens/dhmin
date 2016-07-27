@@ -13,17 +13,17 @@ extensions = [
 source_suffix = '.rst'
 master_doc = 'index'
 
-project = u'urbs'
+project = u'dhmin'
 copyright = u'2014-2016, tum-ens'
-version = '0.5'
-release = '0.5'
+version = '0.1'
+release = '0.1'
 
 exclude_patterns = ['_build']
 #pygments_style = 'sphinx'
 
 # HTML output
 
-htmlhelp_basename = 'urbsdoc'
+htmlhelp_basename = 'dhmindoc'
 
 # LaTeX output
 
@@ -36,7 +36,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'urbs.tex', u'urbs Documentation',
+  ('index', 'dhmin.tex', u'dhmin Documentation',
    u'tum-ens', 'manual'),
 ]
 
@@ -45,7 +45,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'urbs', u'urbs Documentation',
+    ('index', 'dhmin', u'dhmin Documentation',
      [u'tum-ens'], 1)
 ]
 
@@ -56,8 +56,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'urbs', u'urbs Documentation',
-   u'tum-ens', 'urbs', 'A linear optimisation model for distributed energy systems',
+  ('index', 'dhmin', u'dhmin Documentation',
+   u'tum-ens', 'dhmin', 'A linear optimisation model for distributed energy systems',
    'Miscellaneous'),
 ]
 
@@ -65,7 +65,7 @@ texinfo_documents = [
 # Epub output
 
 # Bibliographic Dublin Core info.
-epub_title = u'urbs'
+epub_title = u'dhmin'
 epub_author = u'tum-ens'
 epub_publisher = u'tum-ens'
 epub_copyright = u'2014-2016, tum-ens'
