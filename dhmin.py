@@ -231,6 +231,10 @@ def create_model(vertex, edge, params={}, timesteps=[]):
         m.edge, m.timesteps,
         doc='Power flow through pipe=0 if y[i,j,t]=0',
         rule=pipe_usage_rule)
+    m.must_build = pyomo.Constraint(
+        m.edge,
+        doc='Pipe must be built if must_build == 1',
+        rule=must_build_rule)
     m.build_capacity = pyomo.Constraint(
         m.edge, 
         doc='Pipe capacity Pmax must be smaller than edge attribute cap_max',
@@ -284,6 +288,9 @@ def pipe_capacity_rule(m, i, j, t):
 def pipe_usage_rule(m, i,j ,t):
     return m.Pin[i,j,t] <= m.y[i,j,t] * m.edges.ix[i,j]['cap_max']
     
+def must_build_rule(m, i, j):
+    return m.x[i,j] >= m.edges.ix[i,j]['must_build']
+
 def build_capacity_rule(m, i, j):
     return m.Pmax[i,j] <= m.x[i,j] * m.edges.ix[i,j]['cap_max']
 
@@ -536,4 +543,4 @@ def _get_onset_names(entity):
         raise ValueError("Unknown entity type!")
 
     return labels
-    
+
